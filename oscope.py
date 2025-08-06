@@ -130,6 +130,7 @@ def parse(scope):
         parser.add_argument('--annocolor', '-c', nargs=1, metavar='color', 
                             choices=['ch'+str(x) for x in scope.chanAnaValidList] + ['dig', 'math', 'ref', 'marker', 'white', 'red'],
                             help='Set the annotation color to use. Valid values: %(choices)s')
+        
     parser.add_argument('--label', '-b',  nargs=2, action='append', metavar=('channel', 'label'), 
                             help='Change label of selected channel (' + str(scope.chanAnaValidList).strip('[]') + ')')
 
@@ -140,17 +141,18 @@ def parse(scope):
 
     args = parser.parse_args()
 
-    # Because of how Keysight now uses Bookmarks instead of
-    # annotation, must require that if annotate is given, annocolor
-    # must be given or vice versa. However, if given args.annotate
-    # with whitespace, it means that the user wants to turn off the
-    # bookmark so allow that without annocolor.    
-    if (args.annotate):
-        text = args.annotate
-    else:
-        text = ' '
-    if ((text.strip() and args.annotate and args.annocolor is None) or (args.annotate is None and args.annocolor)):
-        parser.error("--annotate requires --annocolor and vice versa")
+    if (scope.series != 'RIGOL' and scope.series != 'DHOS'):    
+        # Because of how Keysight now uses Bookmarks instead of
+        # annotation, must require that if annotate is given, annocolor
+        # must be given or vice versa. However, if given args.annotate
+        # with whitespace, it means that the user wants to turn off the
+        # bookmark so allow that without annocolor.    
+        if (args.annotate):
+            text = args.annotate
+        else:
+            text = ' '
+        if ((text.strip() and args.annotate and args.annocolor is None) or (args.annotate is None and args.annocolor)):
+            parser.error("--annotate requires --annocolor and vice versa")
     
     return args
 
@@ -289,7 +291,7 @@ def main():
             except ValueError as exp:
                 print(exp)
                         
-    if (args.annotate):
+    if (scope.series != 'RIGOL' and scope.series != 'DHOS' and args.annotate):
         text = args.annotate
 
         # If only whitespace is passed in, then turn off the
@@ -302,7 +304,7 @@ def main():
             # TRAN = transparent background - can also be OPAQue or INVerted
             scope.annotate(text)
             
-    if (args.annocolor):
+    if (scope.series != 'RIGOL' and scope.series != 'DHOS' and args.annocolor):
         # If the annocolor option is given, simply change the color,
         # even if not even enabled yet
         scope.annotateColor(args.annocolor[0])
