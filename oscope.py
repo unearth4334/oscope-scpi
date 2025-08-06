@@ -132,7 +132,7 @@ def parse(scope):
                             help='Set the annotation color to use. Valid values: %(choices)s')
         
     parser.add_argument('--label', '-b',  nargs=2, action='append', metavar=('channel', 'label'), 
-                            help='Change label of selected channel (' + str(scope.chanAnaValidList).strip('[]') + ')')
+                            help='Change label of selected channel (' + str(scope.chanAllValidList).strip('[]') + ')')
 
     # Print help if no options are given on the command line
     if (len(sys.argv) <= 1):

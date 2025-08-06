@@ -72,7 +72,8 @@ class Rigol(Oscilloscope):
         #
         # NOTE: Currently, only valid common values are a
         # CHAN+numerical string for the analog channels
-        self._chanAllValidList = [self.channelStr(x) for x in range(1,self._max_chan+1)]
+        #@@@#self._chanAllValidList = [self.channelStr(x) for x in range(1,self._max_chan+1)]
+        self._chanAllValidList = [str(x) for x in range(1,self._max_chan+1)]
 
         # Give the Series a name
         self._series = 'RIGOL'
@@ -210,16 +211,37 @@ class Rigol(Oscilloscope):
             raise ValueError('Channel cannot be a list for CHANNEL LABEL!')
 
         # Check channel value
-        if (self.channel not in self._chanAnaValidList):
+        if (self.channel not in self._chanAllValidList):
             raise ValueError('INVALID Channel Value for CHANNEL LABEL: {}  SKIPPING!'.format(self.channel))
-            
-        self._instWrite('CHAN{}:LABel:CONT {}'.format(self.channel, label))
-        self._instWrite('CHAN{}:LABel:SHOW ON'.format(self.channel))
+
+        if (self.channel.startswith('D')):
+            # A digital channel so uses a different command
+            # @@@@@ Cannot get this to Work
+            #
+            #@@@#print(self._instQuery('LA:DIGital:LABel? {}'.format(self.channel)))
+            #@@@#self._instWrite('LA:ENAB ON')
+            #@@@#self._instWrite('LA:ACT {}'.format(self.channel))
+            #@@@#self._instWrite('LA:DIGital:ENAB {},ON'.format(self.channel))
+            self._instWrite('LA:DIGital:LABel {},{}'.format(self.channel, label))
+            # For now, turn on both PODS - can make this smarter later
+            #self._instWrite('LA:POD1:DISPLAY ON')
+            #self._instWrite('LA:POD2:DISPLAY ON')
+        else:        
+            self._instWrite('CHAN{}:LABel:CONT {}'.format(self.channel, label))
+            self._instWrite('CHAN{}:LABel:SHOW ON'.format(self.channel))
 
     def channelLabelOff(self):
         """ Turn off channel labels """
 
-        self._instWrite('CHAN{}:LABel:SHOW OFF'.format(self.channel))
+        if (self.channel.startswith('D')):
+            # A digital channel so uses a different command
+            #
+            # For now, turn OFF both PODS - can make this smarter later
+            #self._instWrite('LA:POD1:DISPLAY OFF')
+            #self._instWrite('LA:POD2:DISPLAY OFF')
+            self._instWrite('LA:DIGital:LABel {},{}'.format(self.channel, self.channel))
+        else:        
+            self._instWrite('CHAN{}:LABel:SHOW OFF'.format(self.channel))
 
 
     def setupAutoscale(self, channel=None):

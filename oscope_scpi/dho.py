@@ -105,7 +105,7 @@ class DHOS(DHO):
 
         # Since DHOS have digital channels, add POD1 is for digital
         # channels 0-7 or POD2 for digital channels 8-15
-        self._chanAllValidList += ['POD'+str(x) for x in range(1,3)]
+        self._chanAllValidList += ['D'+str(x) for x in range(0,15)]
 
         # Give the Series a name
         self._series = 'DHOS'
