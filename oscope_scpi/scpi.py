@@ -248,7 +248,12 @@ class SCPI(object):
 
         methodNew = ("SYSTem:ERRor? STRing", ("0,", 0, 2))
         methodOld = ("SYSTem:ERRor?",        ("+0,", 0, 3))
-        if (not self._legacyError and self._version > self._versionLegacy):
+        methodRigol = ("SYSTem:ERRor?",      ("0,", 0, 2))
+        if (self._IDNmanu.upper().startswith('RIGOL')):
+            # Rigol Error is slightly different than the two Keysight versions
+            cmd = methodRigol[0]
+            noerr = methodRigol[1]
+        elif (not self._legacyError and self._version > self._versionLegacy):
             cmd = methodNew[0]
             noerr = methodNew[1]
         else:

@@ -235,6 +235,17 @@ class Oscilloscope(SCPI):
                     
                 # Generic Keysight Oscilloscope
                 newobj = Keysight(self._resource, wait=self._wait)
+        elif (self._IDNmanu.upper().startswith('RIGOL')):
+            # A Rigol scope so check model
+            if (self._IDNmodel.upper().startswith('DHO')):
+                try:
+                    from .dho import DHO, DHOS, DHO924S
+                except Exception:
+                    sys.path.append(os.getcwd())
+                    from dho import DHO, DHOS, DHO924S
+
+                # For NOW, Declare it a Generic DHOS
+                newobj = DHOS(self._resource, wait=self._wait)                                    
 
         return newobj
     

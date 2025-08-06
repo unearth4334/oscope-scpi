@@ -44,5 +44,13 @@ from .dso import MSOX3xx2A
 # Support of HP/Agilent/Keysight MSO-X 3000A 4-channel oscilloscope
 from .dso import MSOX3xx4A
 
+# Common Rigol Oscilloscope SCPI commands
+from .rigol import Rigol
+
+# Support of Rigol DHO 4-channel oscilloscope
+from .dho import DHO
+from .dho import DHOS
+from .dho import DHO924S
+
 
 

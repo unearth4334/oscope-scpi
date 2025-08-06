@@ -26,7 +26,7 @@
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #-------------------------------------------------------------------------------
-#  Handle several remote functions of Agilent/KeySight oscilloscopes
+#  Handle several remote functions of Agilent/KeySight & Rigol oscilloscopes
 #
 # Using my new oscope_scpi Class
 #
@@ -102,7 +102,7 @@ def handleFilename(fname, ext, unique=True, timestamp=True):
 
 def parse(scope):
 
-    parser = argparse.ArgumentParser(description='Access Agilent/KeySight MSO3034A scope')
+    parser = argparse.ArgumentParser(description='Access Agilent/KeySight oscilloscope and some functions of Rigol oscilloscopes')
     parser.add_argument('--hardcopy', '-y', metavar='outfile.png', help='grab hardcopy of scope screen and output to named file as a PNG image')
     parser.add_argument('--waveform', '-w', nargs=2, metavar=('channel', 'outfile.npz'), action='append',
                         help='grab waveform data of channel ('+ str(scope.chanAllValidList).strip('[]') + ') and output to named file as a Numpy NPZ file (see oscopeplot.py or oscopecsv.py)')
@@ -124,8 +124,10 @@ def parse(scope):
 
     parser.add_argument('--measure', '-m', nargs=1, action='append', choices=scope.chanAnaValidList,
                             help='measure and output the selected channel')
-    parser.add_argument('--annotate', '-a', nargs='?', metavar='text', const=' ', help='Add annotation text to screen. Clear text if label is blank')
-    parser.add_argument('--annocolor', '-c', nargs=1, metavar='color', 
+    if (scope.series != 'RIGOL' and scope.series != 'DHOS'):
+        ## Rigol does not currently handle annotations
+        parser.add_argument('--annotate', '-a', nargs='?', metavar='text', const=' ', help='Add annotation text to screen. Clear text if label is blank')
+        parser.add_argument('--annocolor', '-c', nargs=1, metavar='color', 
                             choices=['ch'+str(x) for x in scope.chanAnaValidList] + ['dig', 'math', 'ref', 'marker', 'white', 'red'],
                             help='Set the annotation color to use. Valid values: %(choices)s')
     parser.add_argument('--label', '-b',  nargs=2, action='append', metavar=('channel', 'label'), 
