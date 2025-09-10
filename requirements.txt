@@ -14,3 +14,5 @@ QuantiPhy>=2.3.0
 # Version constraints based on Python version support
 numpy>=1.19.5; python_version>="3.8"
 numpy==1.19.5; python_version<"3.8"
+
+colorama>=0.4.6  # Cross-platform colored terminal text
