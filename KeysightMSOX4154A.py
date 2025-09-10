@@ -53,7 +53,7 @@ Establishes a connection to the Keysight MSOX4154A Oscilloscope and provides met
 
 Example usage:
     osc = KeysightMSOX4154A()
-    data = osc.get_screenshot(inksaver=True, fullscreen=True)
+    data = osc.get_screenshot(inksaver=True)
     with open("screen.png", "wb") as f:
         f.write(data)
 """
@@ -93,9 +93,6 @@ class KeysightMSOX4154A:
         if auto_connect:
             self.connect()
 
-    # ---------------------------
-    # Connection / discovery
-    # ---------------------------
     def _discover_resource(self) -> Optional[str]:
         """Find a VISA resource that contains the hint substring."""
         resources = self.rm.list_resources()
@@ -155,55 +152,6 @@ class KeysightMSOX4154A:
                 self.instrument = None
                 self.status = "Not Connected"
 
-    # ---------------------------
-    # Display helpers (for fullscreen)
-    # ---------------------------
-    def _disp_get(self, query: str) -> str:
-        """Query a display setting safely; returns stripped string."""
-        try:
-            return self.instrument.query(query).strip()  # type: ignore[union-attr]
-        except Exception:
-            return ""
-
-    def _set_if_diff(self, what: str, want: str | int):
-        """
-        Set a display parameter only if different (reduces traffic/flicker).
-        Supports a few known commands with queries; others are best-effort.
-        """
-        if self.instrument is None:
-            return
-
-        try:
-            # Normalize input
-            want_s = str(want).upper()
-
-            if what.upper().startswith(":DISP:LAB"):
-                cur = self._disp_get(":DISP:LAB?")
-                want_s = "1" if want_s in ("1", "ON", "TRUE") else "0"
-                if cur != want_s:
-                    self.instrument.write(f":DISP:LAB {want_s}")
-            elif what.upper().startswith(":DISP:GRAT:ALAB"):
-                cur = self._disp_get(":DISP:GRAT:ALAB?")
-                want_s = "1" if want_s in ("1", "ON", "TRUE") else "0"
-                if cur != want_s:
-                    self.instrument.write(f":DISP:GRAT:ALAB {want_s}")
-            elif what.upper().startswith(":DISP:GRAT:INT"):
-                cur = self._disp_get(":DISP:GRAT:INT?")
-                if cur != str(want):
-                    self.instrument.write(f":DISP:GRAT:INT {want}")
-            elif what.upper().startswith(":DISP:MENU"):
-                # No documented query; just write best-effort.
-                self.instrument.write(f":DISP:MENU {want}")
-            else:
-                # Fallback for any other display setting
-                self.instrument.write(f"{what} {want}")
-        except Exception:
-            # Cosmetic tweaks shouldn't break screenshots; ignore errors here.
-            pass
-
-    # ---------------------------
-    # Public API
-    # ---------------------------
     def get(self, item: str, **kwargs: Any):
         """
         Generic getter that dispatches to specific methods.
@@ -212,7 +160,7 @@ class KeysightMSOX4154A:
             - "screenshot" → get_screenshot(**kwargs)
 
         Example:
-            osc.get("screenshot", inksaver=True, fullscreen=True)
+            osc.get("screenshot", inksaver=True)
 
         Raises:
             ValueError: If an invalid item is requested.
@@ -226,14 +174,13 @@ class KeysightMSOX4154A:
         else:
             raise ValueError(_ERROR_STYLE + f"Invalid item: {item} request to Keysight MSOX4154A Oscilloscope")
 
-    def get_screenshot(self, inksaver: bool = False, fullscreen: bool = False) -> bytes:
+    def get_screenshot(self, inksaver: bool = False) -> bytes:
         """
         Capture a screenshot as PNG bytes.
 
         Args:
-            inksaver: If True, capture with print-friendly palette.
-                      (Uses :HARDcopy:INKSaver {ON|OFF} and corresponding DISPLAY:DATA mode.)
-            fullscreen: If True, temporarily hide menus/labels/graticule to maximize waveform area.
+            inksaver: If True, capture in inksaver mode ("PNG,INKSaver") which reduces color
+                      density for printing. Default False (full color: "PNG,COLor").
 
         Returns:
             PNG image data as bytes.
@@ -245,42 +192,26 @@ class KeysightMSOX4154A:
         if self.instrument is None:
             raise ConnectionError(_ERROR_STYLE + "Not connected to Keysight MSOX4154A Oscilloscope.")
 
-        # Save current queried display settings (only those we can query/restore)
-        saved = {}
-        if fullscreen:
-            try:
-                saved["LAB"] = self._disp_get(":DISP:LAB?")          # '0' or '1'
-                saved["GLAB"] = self._disp_get(":DISP:GRAT:ALAB?")   # '0' or '1'
-                saved["GINT"] = self._disp_get(":DISP:GRAT:INT?")    # e.g., '20'
-            except Exception:
-                saved = {}
-
         try:
-            # Prep “fullscreen” view (best-effort; don't fail if device rejects)
-            if fullscreen:
-                self._set_if_diff(":DISP:MENU", "OFF")     # hide softkey menu (no query)
-                self._set_if_diff(":DISP:LAB", "OFF")      # hide channel labels
-                self._set_if_diff(":DISP:GRAT:ALAB", 0)    # hide axis labels
-                self._set_if_diff(":DISP:GRAT:INT", 0)     # grid off (intensity 0)
+            # Ensure acquisition isn't blocking (optional—but can help throughput)
+            # self.instrument.write(":STOP")
 
-            # Your working inksaver behavior preserved:
-            # - Toggle HARDcopy inksaver
-            # - Choose corresponding DISPLAY:DATA mode string
             if inksaver:
+                # Enable inksaver mode for printing (less color)
                 self.instrument.write(":HARDcopy:INKSaver ON")
                 mode = "PNG,SCReen,ON,NORMal"
             else:
                 self.instrument.write(":HARDcopy:INKSaver OFF")
                 mode = "PNG,COLor"
 
-            # Read the definite-length binary block efficiently
+            # Use PyVISA helper to parse the definite-length binary block.
             data = self.instrument.query_binary_values(
-                f":DISPlay:DATA? {mode}",
-                datatype='B',               # raw bytes
-                is_big_endian=True,         # irrelevant for bytes; required by API
-                container=bytearray,        # efficient accumulation
-                chunk_size=self._chunk_size,
-                delay=0
+            f":DISPlay:DATA? {mode}",
+            datatype='B',               # raw bytes
+            is_big_endian=True,         # irrelevant for bytes but required by API
+            container=bytearray,        # efficient accumulation
+            chunk_size=self._chunk_size,
+            delay=0
             )
             return bytes(data)
 
@@ -289,16 +220,6 @@ class KeysightMSOX4154A:
             raise RuntimeError(_ERROR_STYLE + f"Failed to capture screenshot: {e}{tips}")
         except Exception as e:
             raise RuntimeError(_ERROR_STYLE + f"Failed to capture screenshot: {e}")
-        finally:
-            # Restore display state if we changed it
-            if fullscreen and saved:
-                try:
-                    self._set_if_diff(":DISP:LAB", "ON" if saved.get("LAB", "1") == "1" else "OFF")
-                    self._set_if_diff(":DISP:GRAT:ALAB", 1 if saved.get("GLAB", "1") == "1" else 0)
-                    self._set_if_diff(":DISP:GRAT:INT", saved.get("GINT", "20"))
-                    # We don't attempt to restore MENU state (no query exists); leaving it OFF avoids clobbering context.
-                except Exception:
-                    pass
 
 
 # If run directly, perform a quick self-test screenshot to current directory (optional).
@@ -322,19 +243,12 @@ if __name__ == "__main__":
         with open(fname, "wb") as f:
             f.write(osc.get_screenshot())
 
-        # Inksaver example
+        # Inksaver example (disabled by default; uncomment to test)
         # ts2 = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         # fname2 = f"screenshot_inksaver_{ts2}.png"
         # print(f"Saving inksaver screenshot to {fname2}")
         # with open(fname2, "wb") as f2:
         #     f2.write(osc.get_screenshot(inksaver=True))
-
-        # Fullscreen + inksaver example
-        # ts3 = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        # fname3 = f"screenshot_fullscreen_inksaver_{ts3}.png"
-        # print(f"Saving fullscreen inksaver screenshot to {fname3}")
-        # with open(fname3, "wb") as f3:
-        #     f3.write(osc.get_screenshot(inksaver=True, fullscreen=True))
 
     finally:
         osc.disconnect()
