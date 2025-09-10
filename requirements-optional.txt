@@ -1,0 +1,12 @@
+# Optional dependencies for oscope-scpi development and examples
+# Install with: pip install -r requirements-optional.txt
+
+# Matplotlib for plotting waveform data (used in oscope.py and oscopeplot.py)
+matplotlib>=3.3.4
+
+# PycURL for web-based features (used in from_web.py)
+pycurl
+
+# MSOX3000 package for testbed compatibility (used in testbed.py)
+# Note: This is another package by the same author for legacy oscilloscope support
+msox3000
