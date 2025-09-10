@@ -1,0 +1,12 @@
+# Development dependencies for oscope-scpi
+# Install with: pip install -r requirements-dev.txt
+
+# Include core requirements
+-r requirements.txt
+
+# Include optional requirements for full functionality
+-r requirements-optional.txt
+
+# Development and testing tools (if any are added in the future)
+# setuptools for building the package (usually included with Python)
+setuptools

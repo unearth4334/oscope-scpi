@@ -58,6 +58,21 @@ following and the required dependancies should get installed for you:
 pip install oscope_scpi
 ```
 
+### Installing from Source with Requirements Files
+
+If you clone this repository, you can use the provided requirements files:
+
+```bash
+# Install core dependencies only
+pip install -r requirements.txt
+
+# Install core + optional dependencies (matplotlib, pycurl, etc.)
+pip install -r requirements-optional.txt
+
+# Install everything including development dependencies
+pip install -r requirements-dev.txt
+```
+
 ## Requirements
 * [argparse](https://docs.python.org/3/library/argparse.html) 
 * [numpy 1.19.5](https://numpy.org/)

@@ -1,0 +1,16 @@
+# Core dependencies for oscope-scpi
+# Oscilloscope control via SCPI commands through PyVISA
+
+# PyVISA for VISA instrument control
+pyvisa>=1.11.3
+
+# Pure Python backend for PyVISA (eliminates need for NI-VISA)
+pyvisa-py>=0.5.2
+
+# Physical quantity parsing and formatting
+QuantiPhy>=2.3.0
+
+# NumPy for numerical operations and waveform data handling
+# Version constraints based on Python version support
+numpy>=1.19.5; python_version>="3.8"
+numpy==1.19.5; python_version<"3.8"
