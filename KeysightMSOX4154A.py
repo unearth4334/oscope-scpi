@@ -196,16 +196,22 @@ class KeysightMSOX4154A:
             # Ensure acquisition isn't blocking (optional—but can help throughput)
             # self.instrument.write(":STOP")
 
-            mode = "INKSaver" if inksaver else "COLor"
+            if inksaver:
+                # Enable inksaver mode for printing (less color)
+                self.instrument.write(":HARDcopy:INKSaver ON")
+                mode = "PNG,SCReen,ON,NORMal"
+            else:
+                self.instrument.write(":HARDcopy:INKSaver OFF")
+                mode = "PNG,COLor"
 
             # Use PyVISA helper to parse the definite-length binary block.
             data = self.instrument.query_binary_values(
-                f":DISPlay:DATA? PNG,{mode}",
-                datatype='B',               # raw bytes
-                is_big_endian=True,         # irrelevant for bytes but required by API
-                container=bytearray,        # efficient accumulation
-                chunk_size=self._chunk_size,
-                delay=0
+            f":DISPlay:DATA? {mode}",
+            datatype='B',               # raw bytes
+            is_big_endian=True,         # irrelevant for bytes but required by API
+            container=bytearray,        # efficient accumulation
+            chunk_size=self._chunk_size,
+            delay=0
             )
             return bytes(data)
 
