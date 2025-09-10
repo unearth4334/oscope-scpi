@@ -160,15 +160,15 @@ channel values are:
 The code is a basic class for controlling and accessing the
 supported oscilloscopes.
 
-The examples are written to access the oscilloscope over
-ethernet/TCPIP. So the examples need to know the IP address of your
-specific oscilloscope. Also, PyVISA can support other access
-mechanisms, like USB. So the examples must be edited to use the
-resource string or VISA descriptor of your particular
-device. Alternatively, you can set an environment variable, OSCOPE\_IP
-to the desired VISA resource string before running the code. If not using
-ethernet to access your device, search online for the proper resource
-string needed to access your device.
+The examples are written to access the oscilloscope over USB by
+default with automatic device detection. The code will scan for
+USB-connected oscilloscopes and connect to the first one found. For
+backward compatibility, you can still specify a manual resource string
+such as ethernet/TCPIP addresses. PyVISA can support other access
+mechanisms as well. You can set an environment variable, OSCOPE\_IP
+to the desired VISA resource string before running the code to override
+the USB auto-detection. If not using the default USB auto-detection,
+search online for the proper resource string needed to access your device.
 
 For more detailed examples, see:
 
@@ -181,21 +181,19 @@ display, adds some annotations and signal labels and then saves a
 hardcopy to a file.
 
 ```python
-# Lookup environment variable OSCOPE_IP and use it as the resource
-# name or use the TCPIP0 string if the environment variable does
-# not exist
+# Auto-detect USB oscilloscope or use environment variable OSCOPE_IP for manual specification
 from oscope_scpi import Oscilloscope
 from os import environ
-resource = environ.get('OSCOPE_IP', 'TCPIP0::172.16.2.13::INSTR')
+resource = environ.get('OSCOPE_IP', None)  # None enables USB auto-detection
 
-# create your visa instrument
+# create your visa instrument - will auto-detect USB oscilloscope if resource is None
 instr = Oscilloscope(resource)
 
 # Upgrade Object to best match based on IDN string
 instr = instr.getBestClass()
 
-# Open connection to instrument
-instr.open()
+# Open connection to instrument (with USB auto-detection if needed)
+instr.connect()
 
 # set to channel 1
 #

@@ -48,7 +48,7 @@ class SCPI(object):
     UnderRange = -9.9E+37                 # Number which indicates Under Range
     ErrorQueue = 30                       # Size of error queue
     
-    def __init__(self, resource, max_chan=1, wait=0,
+    def __init__(self, resource=None, max_chan=1, wait=0,
                      cmd_prefix = '',
                      read_strip = '',
                      read_termination = '',
@@ -56,7 +56,8 @@ class SCPI(object):
                      timeout = 5000):
         """Init the class with the instruments resource string
 
-        resource   - resource string or VISA descriptor, like TCPIP0::172.16.2.13::INSTR
+        resource   - resource string or VISA descriptor, like USB0::0x0957::0x17A6::MY59270123::INSTR
+                     If None, will attempt to auto-detect USB oscilloscope when connect() is called
         max_chan   - number of channels
         wait       - float that gives the default number of seconds to wait after sending each command
         cmd_prefix - optional command prefix (ie. some instruments require a ':' prefix)
@@ -80,6 +81,91 @@ class SCPI(object):
         self._versionLegacy = 0.0   # set software version which triggers Legacy code to lowest value until it gets set
         self._legacyError = True    # Start off using Legacy Error method since both old and new instruments return something
         self._inst = None
+
+    def _find_usb_oscilloscope(self):
+        """Find and return the first USB-connected oscilloscope resource string
+        
+        This method scans for USB resources and looks for known oscilloscope identifiers.
+        
+        Returns:
+            str: Resource string of the first detected oscilloscope, or None if none found
+            
+        Raises:
+            ConnectionError: If no oscilloscope is found via USB
+        """
+        rm = visa.ResourceManager('@py')
+        resources = rm.list_resources()
+        
+        # Known oscilloscope identifiers in USB resource strings
+        # These are common patterns found in USB device resource strings for oscilloscopes
+        oscilloscope_identifiers = [
+            'MY5',     # Keysight instruments (like MY59 from example)
+            'DSO',     # Keysight DSO series
+            'MSO',     # Keysight MSO series  
+            'MXR',     # Keysight MXR series
+            'UXR',     # Keysight UXR series
+            'EXR',     # Keysight EXR series
+            'RIGOL',   # Rigol instruments
+            'DHO',     # Rigol DHO series
+            'AGILENT', # Legacy Agilent instruments
+            'KEYSIGHT' # Keysight instruments
+        ]
+        
+        # Look for USB resources that match oscilloscope patterns
+        usb_oscilloscopes = []
+        for resource in resources:
+            if 'USB' in resource.upper():
+                # Check if any oscilloscope identifier is in the resource string
+                for identifier in oscilloscope_identifiers:
+                    if identifier in resource.upper():
+                        usb_oscilloscopes.append(resource)
+                        break
+        
+        if not usb_oscilloscopes:
+            # If no specific identifiers found, check all USB resources
+            # by attempting to query them for oscilloscope identification
+            for resource in resources:
+                if 'USB' in resource.upper():
+                    try:
+                        # Try to open and query the device
+                        temp_inst = rm.open_resource(resource)
+                        temp_inst.timeout = 2000  # Short timeout for identification
+                        idn_response = temp_inst.query('*IDN?')
+                        temp_inst.close()
+                        
+                        # Check if the IDN response indicates it's an oscilloscope
+                        idn_upper = idn_response.upper()
+                        if any(scope_id in idn_upper for scope_id in oscilloscope_identifiers):
+                            usb_oscilloscopes.append(resource)
+                            break
+                    except:
+                        # If query fails, this device is not a SCPI instrument
+                        continue
+        
+        if usb_oscilloscopes:
+            return usb_oscilloscopes[0]  # Return first found oscilloscope
+        else:
+            return None
+
+    def connect(self, auto_detect_usb=True):
+        """Connect to oscilloscope, with optional USB auto-detection
+        
+        Args:
+            auto_detect_usb (bool): If True and resource is None, attempt to auto-detect USB oscilloscope
+            
+        Raises:
+            ConnectionError: If unable to connect to oscilloscope
+        """
+        if self._resource is None and auto_detect_usb:
+            self._resource = self._find_usb_oscilloscope()
+            if self._resource is None:
+                raise ConnectionError("No USB oscilloscope found. Please ensure an oscilloscope is connected via USB.")
+        
+        if self._resource is None:
+            raise ConnectionError("No resource specified and auto-detection disabled.")
+            
+        # Call the original open method
+        self.open()
 
     def open(self):
         """Open a connection to the VISA device with PYVISA-py python library"""
