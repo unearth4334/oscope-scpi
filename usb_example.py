@@ -35,7 +35,7 @@ def main():
     print("\n2. Manual USB resource specification...")
     try:
         # Example USB resource string for a Keysight oscilloscope
-        usb_resource = "USB0::0x0957::0x17A6::MY59270123::INSTR"
+        usb_resource = "USB0::0x0957::0x17BC::MY56310625::INSTR"
         scope = Oscilloscope(usb_resource)
         print(f"✓ Created scope with USB resource: {usb_resource}")
         print("  (Would connect if device was actually present)")
@@ -45,7 +45,7 @@ def main():
     
     # Method 3: Environment variable override
     print("\n3. Environment variable override...")
-    os.environ['OSCOPE_IP'] = 'USB0::0x0957::0x17A6::MY59270123::INSTR'
+    os.environ['OSCOPE_IP'] = 'USB0::0x0957::0x17BC::MY56310625::INSTR'
     try:
         scope = Oscilloscope(os.environ.get('OSCOPE_IP', None))
         print(f"✓ Using resource from OSCOPE_IP: {scope._resource}")
