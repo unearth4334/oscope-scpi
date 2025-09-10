@@ -158,18 +158,17 @@ def parse(scope):
 
 def main():
 
-    # Set to the IP address of the oscilloscope
-    #@@@#agilent_msox_3034a = os.environ.get('MSOX3000_IP', 'TCPIP0::172.16.2.13::INSTR')
-    #@@@#agilent_mxr_058a = os.environ.get('MXR058A_IP', 'TCPIP0::172.16.2.13::INSTR')
-    pyvisa_oscope = os.environ.get('OSCOPE_IP', 'TCPIP0::172.16.2.13::INSTR')
+    # Lookup environment variable OSCOPE_IP for backward compatibility or 
+    # auto-detect USB oscilloscope if not specified
+    pyvisa_oscope = os.environ.get('OSCOPE_IP', None)  # Default to None for USB auto-detection
     
-    ## Connect to the Oscilloscope
+    ## Connect to the Oscilloscope - will auto-detect USB if no resource specified
     scope = Oscilloscope(pyvisa_oscope)
 
     ## Help to use with other models. Likely will not need these three
     ## lines once get IDN strings from all know oscilloscopes that I
     ## want to use
-    scope.open()
+    scope.connect()  # Use new connect method with USB auto-detection
     print('Potential SCPI Device: ' + scope.idn() + '\n')
     scope.close()
     
@@ -177,7 +176,7 @@ def main():
     scope = scope.getBestClass()
     
     ## Open this object and work with it
-    scope.open()
+    scope.connect()  # Use new connect method
     print('Using SCPI Device:     ' + scope.idn() + ' of series: ' + scope.series + '\n')
 
     # parse command line options with knowledge of instrument

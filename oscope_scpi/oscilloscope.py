@@ -52,14 +52,15 @@ import csv
 class Oscilloscope(SCPI):
     """Base class for controlling and accessing an Oscilloscope with PyVISA and SCPI commands"""
 
-    def __init__(self, resource, maxChannel=1, wait=0,
+    def __init__(self, resource=None, maxChannel=1, wait=0,
                      cmd_prefix = ':',
                      read_strip = '\n',
                      read_termination = '',
                      write_termination = '\n'):
         """Init the class with the instruments resource string
 
-        resource   - resource string or VISA descriptor, like TCPIP0::172.16.2.13::INSTR
+        resource   - resource string or VISA descriptor, like USB0::0x0957::0x17A6::MY59270123::INSTR
+                     If None, will attempt to auto-detect USB oscilloscope when connect() is called
         maxChannel - number of channels
         wait       - float that gives the default number of seconds to wait after sending each command
         cmd_prefix - optional command prefix (ie. some instruments require a ':' prefix)
@@ -446,11 +447,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     from os import environ
-    resource = environ.get('OSCOPE_IP', 'TCPIP0::172.16.2.13::INSTR')
+    resource = environ.get('OSCOPE_IP', None)  # None enables USB auto-detection
     instr = Oscilloscope(resource)
     ## Upgrade Object to best match based on IDN string
     instr = instr.getBestClass()
-    instr.open()
+    instr.connect()  # Use connect() method with USB auto-detection
 
     # set the channel (can pass channel to each method or just set it
     # once and it becomes the default for all following calls)
