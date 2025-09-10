@@ -73,29 +73,36 @@ class KeysightMSOX4154A:
         else:
             raise ValueError(_ERROR_STYLE + f"Invalid item: {item} request to Keysight MSOX4154A Oscilloscope")
 
-    def get_screenshot(self):
+        def get_screenshot(self, inksaver: bool = False):
+        """
+        Captures a screenshot from the oscilloscope and returns it as PNG image data.
+
+        Args:
+            inksaver (bool, optional): If True, capture in inksaver mode 
+                                       (less ink/toner when printed). Defaults to False.
+
+        Returns:
+            bytes: The PNG image data.
+        """
         if self.instrument is None:
             raise ConnectionError(_ERROR_STYLE + "Not connected to Keysight MSOX4154A Oscilloscope.")
 
         try:
-            # Ask the scope to format PNG and send display data as a definite-length binary block
-            # Note: "COLOR" spelling must match the scope's SCPI (Keysight uses COLor or COLOR; both typically work)
-            # The helper returns an array of uint8; we collect into a bytearray for speed then convert to bytes.
+            # Choose SCPI command based on inksaver flag
+            mode = "INKSaver" if inksaver else "COLor"
+
             data = self.instrument.query_binary_values(
-                ":DISPlay:DATA? PNG,COLor",
-                datatype='B',                # bytes
-                is_big_endian=True,          # binary block header uses ASCII length; endianness irrelevant for bytes
-                container=bytearray,         # efficient accumulation
-                chunk_size=102_400,          # match/read in large chunks
-                delay=0                      # no inter-chunk delay
+                f":DISPlay:DATA? PNG,{mode}",
+                datatype='B',
+                is_big_endian=True,
+                container=bytearray,
+                chunk_size=102_400,
+                delay=0
             )
             return bytes(data)
 
         except pyvisa.errors.VisaIOError as e:
-            # Common cause: timeout. Suggest remedies in the error message.
-            tips = (
-                " (Tips: ensure read_termination=None, increase timeout, and use query_binary_values for the PNG block.)"
-            )
+            tips = " (Tips: increase timeout, ensure read_termination=None, use query_binary_values.)"
             raise RuntimeError(_ERROR_STYLE + f"Failed to capture screenshot: {e}{tips}")
         except Exception as e:
             raise RuntimeError(_ERROR_STYLE + f"Failed to capture screenshot: {e}")
